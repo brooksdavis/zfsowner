@@ -2,7 +2,8 @@ zfsowner
 ========
 
 Set of scripts to mount zfs filesystems as users to support delegated
-administration and non-root superuser rights.
+administration and non-root superuser rights.  As currently implemented,
+the scripts are suitable for managing NFS shares to test lab machines.
 
 Setup
 -----
@@ -14,6 +15,15 @@ Setup
 		vfs.zfs.super_owner=1
 
 	and set the sysctls manually or reboot.
+
+*	On the parent export directory (e.g. pool/export/users) create
+	a delegated permission set named @users_delegation
+
+		zfs allow -s @users_delegation clone,create,destroy,mount,promote,rename,sharenfs,snapshot pool/export/users
+
+*	You will likely also want to set a default sharenfs property
+
+		zfs set sharenfs="-ro -network 192.168.5.0/24 -maproot=root" pool/export/users
 
 Scripts
 -------
