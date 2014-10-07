@@ -1,7 +1,21 @@
 zfsowner
 ========
 
-Set of scripts to mount zfs filesystems as users to support delegated administration
+Set of scripts to mount zfs filesystems as users to support delegated
+administration and non-root superuser rights.
+
+Setup
+-----
+*	Install and modify the scripts below as required for your setup.
+
+*	Add the following to /etc/sysctl.conf:
+
+	> # Allow users to mount filesystems and for users who have mounted zfs
+	> # filesystems to be superusers on them.
+	> vfs.usermount=1
+	> vfs.zfs.super_owner=1
+
+	and set the sysctls manually or reboot.
 
 Scripts
 -------
