@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+# Copyright (c) 2012 Pawel Jakub Dawidek <pawel@dawidek.net>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHORS OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+# HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+# OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+#
+
+#
+# This script is supposed to remount file systems with org.freebsd:owner
+# property set as regular user from the property. This way file system owner
+# will be able to perform further operations on the file system.
+#
+
+# PROVIDE: zfsowner
+# REQUIRE: LOGIN
+
+. /etc/rc.subr
+
+name="zfsowner"
+start_cmd="remount"
+stop_cmd=":"
+
+remount()
+{
+	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | while read dataset canmount mountpoint owner; do
+		# Skip datasets that are not suppose to be mounted.
+		[ "${canmount}" != "on" ] && continue
+		# Skip datasets with non-path mountpoints.
+		[ "${mountpoint}" = "${mountpoint#/}" ] && continue
+		# Skip datasets without org.freebsd:owner property.
+		[ "${owner}" = "-" ] && continue
+	
+		# Get owner's UID needed for chown.
+		# This way we also check if the owner from the property is an existing system user.
+		uid=`id -u ${owner} 2>/dev/null`
+		if [ $? -ne 0 ]; then
+			echo "Invalid org.freebsd:owner property (${owner}) set for ${dataset}, skipping." >/dev/stderr
+			continue
+		fi
+	
+		# Skip if already mounted by the given user.
+		mount -t zfs | egrep -q '^'${dataset}' on '${mountpoint}' \(zfs, .*, mounted by '${owner}'\)$'
+		[ $? -eq 0 ] && continue
+	
+		# Owner's gid for chown.
+		gid=`id -g ${owner}`
+		[ $? -ne 0 ] && continue	# Should never fail.
+	
+		# Unmount file system if it is actually mounted.
+		if [ "`zfs get -H -o value mounted ${dataset}`" = "yes" ]; then
+			out=`zfs umount ${dataset} 2>&1`
+			if [ $? -ne 0 ]; then
+				echo "zfs umount ${dataset} failed (${out}), skipping." >/dev/stderr
+				continue
+			fi
+		fi
+	
+		# Create mountpoint directory if it doesn't exist.
+		if [ ! -d ${mountpoint} ]; then
+			out=`mkdir ${mountpoint} 2>&1`
+			if [ $? -ne 0 ]; then
+				echo "mkdir ${mountpoint} failed (${out}), skipping." >/dev/stderr
+				continue
+			fi
+		fi
+	
+		# Set mountpoint directory owner to the file system owner.
+		out=`chown ${uid}:${gid} ${mountpoint} 2>&1`
+		if [ $? -ne 0 ]; then
+			echo "chown ${uid}:${gid} ${mountpoint} failed (${out}), skipping." >/dev/stderr
+			continue
+		fi
+	
+		# Mount the file system with owner's credentials.
+		out=`su -m ${owner} -c "zfs mount ${dataset}" 2>&1`
+		if [ $? -ne 0 ]; then
+			echo "zfs mount ${dataset} failed (${out}), skipping." >/dev/stderr
+			continue
+		fi
+	done
+	
+	zfs share -a
+}
+
+load_rc_config $name
+run_rc_command $*
