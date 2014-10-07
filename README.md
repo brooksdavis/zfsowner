@@ -10,10 +10,8 @@ Setup
 
 *	Add the following to /etc/sysctl.conf:
 
-	> # Allow users to mount filesystems and for users who have mounted zfs
-	> # filesystems to be superusers on them.
-	> vfs.usermount=1
-	> vfs.zfs.super_owner=1
+		vfs.usermount=1
+		vfs.zfs.super_owner=1
 
 	and set the sysctls manually or reboot.
 
@@ -37,7 +35,7 @@ Scripts
 
 	Install in /usr/local/bin and add an entry to sudoers like
 
-	> ALL ALL=(root) NOPASSWD: /usr/local/bin/zfs-update-exports
+		ALL ALL=(root) NOPASSWD: /usr/local/bin/zfs-update-exports
 
 	to allow users to force a refers of exports after altering their
 	delegated share setttings.
