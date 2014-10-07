@@ -18,3 +18,12 @@ Scripts
 	Install in /usr/local/etc/rc.d to remount user owned mount
 	points as the user at boot.  Such mountpoints are marketed by
 	the freebsd.org:owner attribute.
+
+*	zfs-update-exports
+
+	Install in /usr/local/bin and add an entry to sudoers like
+
+	> ALL ALL=(root) NOPASSWD: /usr/local/bin/zfs-update-exports
+
+	to allow users to force a refers of exports after altering their
+	delegated share setttings.
