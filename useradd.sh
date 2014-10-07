@@ -38,10 +38,10 @@ DEFSHELL=/bin/tcsh
 DRYRUN=0
 VERBOSE=0
 
-HOME_DIR=	/home
-HOME_DATASET=	pool${HOME_DIR}
-EXPORT_DIR=	/exports/users
-EXPORT_DATASET=	pool${EXPORT_DIR}
+HOME_DIR=/home
+HOME_DATASET=pool${HOME_DIR}
+EXPORT_DIR=/exports/users
+EXPORT_DATASET=pool${EXPORT_DIR}
 
 warn()
 {
