@@ -40,9 +40,9 @@ name="zfsowner"
 start_cmd="remount"
 stop_cmd=":"
 
-remount()
+unmount_zfsowner()
 {
-	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | while read dataset canmount mountpoint owner; do
+	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | tail -r | while read dataset canmount mountpoint owner; do
 		# Skip datasets that are not suppose to be mounted.
 		[ "${canmount}" != "on" ] && continue
 		# Skip datasets with non-path mountpoints.
@@ -74,7 +74,16 @@ remount()
 				continue
 			fi
 		fi
+		echo "${listunmount}${dataset} ${mountpoint} ${owner} ${uid} ${gid}"
+	done
+}
 
+remount()
+{
+	listunmount="$(unmount_zfsowner)"
+	[ -n "${listunmount}" ] || exit 0
+
+	echo "${listunmount}" | tail -r | while read dataset mountpoint owner uid gid; do
 		# Create mountpoint directory if it doesn't exist.
 		if [ ! -d ${mountpoint} ]; then
 			out=`mkdir ${mountpoint} 2>&1`
