@@ -76,7 +76,7 @@ unmount_zfsowner()
 				continue
 			fi
 		fi
-		echo "${listunmount}${dataset} ${mountpoint} ${owner} ${uid} ${gid}"
+		echo "${dataset} ${mountpoint} ${owner} ${uid} ${gid}"
 	done
 }
 
