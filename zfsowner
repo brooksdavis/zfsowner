@@ -40,8 +40,10 @@ name="zfsowner"
 start_cmd="remount"
 stop_cmd=":"
 
+# Function will unmount filesystems and return list of them.
 unmount_zfsowner()
 {
+	# Unmount in revert order to avoid unmounting fs which contains other mountpoints.
 	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | tail -r | while read dataset canmount mountpoint owner; do
 		# Skip datasets that are not suppose to be mounted.
 		[ "${canmount}" != "on" ] && continue
@@ -83,6 +85,7 @@ remount()
 	listunmount="$(unmount_zfsowner)"
 	[ -n "${listunmount}" ] || exit 0
 
+	# Revert unmounted fs list to mount in original order.
 	echo "${listunmount}" | tail -r | while read dataset mountpoint owner uid gid; do
 		# Create mountpoint directory if it doesn't exist.
 		if [ ! -d ${mountpoint} ]; then
