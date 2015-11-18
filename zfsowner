@@ -40,16 +40,18 @@ name="zfsowner"
 start_cmd="remount"
 stop_cmd=":"
 
-remount()
+# Function will unmount filesystems and return list of them.
+unmount_zfsowner()
 {
-	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | while read dataset canmount mountpoint owner; do
+	# Unmount in revert order to avoid unmounting fs which contains other mountpoints.
+	zfs list -H -t filesystem -o name,canmount,mountpoint,org.freebsd:owner | tail -r | while read dataset canmount mountpoint owner; do
 		# Skip datasets that are not suppose to be mounted.
 		[ "${canmount}" != "on" ] && continue
 		# Skip datasets with non-path mountpoints.
 		[ "${mountpoint}" = "${mountpoint#/}" ] && continue
 		# Skip datasets without org.freebsd:owner property.
 		[ "${owner}" = "-" ] && continue
-	
+
 		# Get owner's UID needed for chown.
 		# This way we also check if the owner from the property is an existing system user.
 		uid=`id -u ${owner} 2>/dev/null`
@@ -57,15 +59,15 @@ remount()
 			echo "Invalid org.freebsd:owner property (${owner}) set for ${dataset}, skipping." >/dev/stderr
 			continue
 		fi
-	
+
 		# Skip if already mounted by the given user.
 		mount -t zfs | egrep -q '^'${dataset}' on '${mountpoint}' \(zfs, .*, mounted by '${owner}'\)$'
 		[ $? -eq 0 ] && continue
-	
+
 		# Owner's gid for chown.
 		gid=`id -g ${owner}`
 		[ $? -ne 0 ] && continue	# Should never fail.
-	
+
 		# Unmount file system if it is actually mounted.
 		if [ "`zfs get -H -o value mounted ${dataset}`" = "yes" ]; then
 			out=`zfs umount ${dataset} 2>&1`
@@ -74,7 +76,17 @@ remount()
 				continue
 			fi
 		fi
-	
+		echo "${dataset} ${mountpoint} ${owner} ${uid} ${gid}"
+	done
+}
+
+remount()
+{
+	listunmount="$(unmount_zfsowner)"
+	[ -n "${listunmount}" ] || exit 0
+
+	# Revert unmounted fs list to mount in original order.
+	echo "${listunmount}" | tail -r | while read dataset mountpoint owner uid gid; do
 		# Create mountpoint directory if it doesn't exist.
 		if [ ! -d ${mountpoint} ]; then
 			out=`mkdir ${mountpoint} 2>&1`
@@ -83,14 +95,14 @@ remount()
 				continue
 			fi
 		fi
-	
+
 		# Set mountpoint directory owner to the file system owner.
 		out=`chown ${uid}:${gid} ${mountpoint} 2>&1`
 		if [ $? -ne 0 ]; then
 			echo "chown ${uid}:${gid} ${mountpoint} failed (${out}), skipping." >/dev/stderr
 			continue
 		fi
-	
+
 		# Mount the file system with owner's credentials.
 		out=`su -m ${owner} -c "zfs mount ${dataset}" 2>&1`
 		if [ $? -ne 0 ]; then
@@ -98,7 +110,7 @@ remount()
 			continue
 		fi
 	done
-	
+
 	zfs share -a
 }
 
