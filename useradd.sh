@@ -111,7 +111,7 @@ if [ ! -d $homedir ]; then
 	ds=${HOME_DATASET}/$name
 	doit zfs create $ds
 	if [ $homedir != `zfs get -o value -H mountpoint $ds` ]; then
-		doit zfs set mountpoint=${homedir} %ds
+		doit zfs set mountpoint=${homedir} ${ds}
 	fi
 	doit chown $name:$name $homedir
 	doit chmod 755 $homedir
@@ -153,7 +153,7 @@ if [ -z "$ds" ]; then
 	ds=${EXPORT_DATASET}/$name
 	doit zfs create -o org.freebsd:owner=$name $ds
 	if [ $userdir != `zfs get -o value -H mountpoint $ds` ]; then
-		doit zfs set mountpoint=${homedir} %ds
+		doit zfs set mountpoint=${homedir} ${ds}
 	fi
 	doit zfs allow $name @users_delegation $ds
 fi
