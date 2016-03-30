@@ -101,7 +101,7 @@ name=$1
 if ! id "${name}" > /dev/null 2>&1; then
 	err 1 "unknown user: '${name}'"
 fi
-ugid=`id -u $name`
+ugid=`id -g $name`
 if [ "$ugid" != "`id -u $name`" ]; then
 	err 1 "user $name exists, but uid != gid"
 fi
