@@ -16,20 +16,20 @@ Setup
 
 	and set the sysctls manually or reboot.
 
-*	On the parent export directory (e.g. pool/export/users) create
+*	On the parent export directory (e.g. pool/exports/users) create
 	a delegated permission set named @users_delegation
 
-		zfs allow -s @users_delegation clone,create,destroy,mount,promote,rename,sharenfs,snapshot pool/export/users
+		zfs allow -s @users_delegation clone,create,destroy,mount,promote,rename,sharenfs,snapshot pool/exports/users
 
 *	You will likely also want to set a default sharenfs property
 
-		zfs set sharenfs="-ro -network 192.168.5.0/24 -maproot=root" pool/export/users
+		zfs set sharenfs="-ro -network 192.168.5.0/24 -maproot=root" pool/exports/users
 
 Scripts
 -------
 *	useradd.sh
 
-	Install in /usr/local/sbin or your prefered location and
+	Install in /usr/local/sbin or your preferred location and
 	customize as required.
 
 	Simple script to add a user with a ZFS home directory and a
@@ -38,7 +38,7 @@ Scripts
 *	zfsowner
 	
 	Install in /usr/local/etc/rc.d to remount user owned mount
-	points as the user at boot.  Such mountpoints are marketed by
+	points as the user at boot.  Such mountpoints are marked by
 	the freebsd.org:owner attribute.
 
 *	zfs-update-exports
@@ -47,5 +47,5 @@ Scripts
 
 		ALL ALL=(root) NOPASSWD: /usr/local/bin/zfs-update-exports
 
-	to allow users to force a refers of exports after altering their
+	to allow users to force a refresh of exports after altering their
 	delegated share setttings.
