@@ -36,10 +36,10 @@ Scripts
 	second delegated ZFS storage location subject to user control.
 
 *	zfsowner
-	
+
 	Install in /usr/local/etc/rc.d to remount user owned mount
 	points as the user at boot.  Such mountpoints are marked by
-	the freebsd.org:owner attribute.
+	the org.freebsd:owner attribute.
 
 *	zfs-update-exports
 
